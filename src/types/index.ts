@@ -1,9 +1,9 @@
 // 类型统一导出
 
 // 导出所有类型定义
-export * from './auth';
-export * from './user';
 export * from './common';
+export * from './user';
+export * from './auth';
 
 // 常用类型别名
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

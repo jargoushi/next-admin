@@ -1,5 +1,6 @@
 import { api } from '../config';
 import type { ApiResponse, PaginatedResponse, RequestParams } from '../types';
+import type { DictTypePageRequest, DictTypePageResponse } from '@/app/(dashboard)/dict/types/dict';
 
 // 字典实体类型
 export interface Dict {
@@ -42,4 +43,8 @@ export const dictApi = {
   // 批量更新状态
   batchUpdateStatus: (dictIds: string[], status: string): Promise<ApiResponse<boolean>> =>
     api.patch('/dict/batch/status', { dictIds, status }),
+
+  // 字典类型分页查询
+  getPageList: (request: DictTypePageRequest): Promise<DictTypePageResponse> =>
+    api.post('/basic-public-app/web/system/sysDictType/pageList', request),
 };
