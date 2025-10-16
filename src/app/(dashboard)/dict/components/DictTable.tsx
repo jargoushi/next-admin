@@ -21,7 +21,7 @@ import {
 import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import Empty from '@/components/common/Empty';
 import Loading from '@/components/common/Loading';
-import type { DictType } from '../types/dict';
+import type { DictType } from '@/lib/api/types';
 
 interface DictTableProps {
   data: DictType[];

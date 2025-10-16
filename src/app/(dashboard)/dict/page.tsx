@@ -8,7 +8,7 @@ import { DictTable } from './components/DictTable';
 import { DictPagination } from './components/DictPagination';
 import { DictEditDialog } from './components/DictEditDialog';
 import { toast } from 'sonner';
-import type { DictTypeParams, DictType } from './types/dict';
+import type { DictTypeParams, DictType } from '@/lib/api/types';
 
 export default function DictPage() {
   const [searchParams, setSearchParams] = useState<DictTypeParams>({
