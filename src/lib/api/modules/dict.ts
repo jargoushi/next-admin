@@ -47,4 +47,12 @@ export const dictApi = {
   // 字典类型分页查询
   getPageList: (request: DictTypePageRequest): Promise<DictTypePageResponse> =>
     api.post('/basic-public-app/web/system/sysDictType/pageList', request),
+
+  // 编辑字典类型
+  editById: (dictData: DictType): Promise<ApiResponse<null>> =>
+    api.post('/basic-public-app/web/system/sysDictType/editById', dictData),
+
+  // 删除字典类型
+  removeById: (dictId: string): Promise<ApiResponse<null>> =>
+    api.post(`/basic-public-app/web/system/sysDictType/remove/${dictId}`),
 };

@@ -47,3 +47,14 @@ export interface DictTypePageResponse {
   serviceCode: string;
   msg: string;
 }
+
+// 字典类型编辑请求使用 DictType 类型（排除时间字段）
+export type DictTypeEditRequest = Omit<DictType, 'createTime' | 'updateTime'>;
+
+// 字典类型删除响应
+export interface DictTypeDeleteResponse {
+  data: null;
+  code: number;
+  serviceCode: string;
+  msg: string;
+}
