@@ -23,7 +23,7 @@ export function DictSearch({ onSearch, loading = false }: DictSearchProps) {
   const [searchParams, setSearchParams] = useState<DictTypeParams>({
     dictName: '',
     dictType: '',
-    status: '',
+    status: 'all',
     serviceName: '',
     dataType: '0',
   });
@@ -51,7 +51,7 @@ export function DictSearch({ onSearch, loading = false }: DictSearchProps) {
     const defaultParams = {
       dictName: '',
       dictType: '',
-      status: '',
+      status: 'all',
       serviceName: '',
       dataType: '0',
     };
@@ -89,14 +89,14 @@ export function DictSearch({ onSearch, loading = false }: DictSearchProps) {
           <div className="space-y-2">
             <label className="text-sm font-medium">状态</label>
             <Select
-              value={searchParams.status || ''}
-              onValueChange={(value) => handleInputChange('status', value)}
+              value={searchParams.status || 'all'}
+              onValueChange={(value) => handleInputChange('status', value === 'all' ? '' : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="请选择状态" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">全部</SelectItem>
+                <SelectItem value="all">全部</SelectItem>
                 <SelectItem value="0">启用</SelectItem>
                 <SelectItem value="1">禁用</SelectItem>
               </SelectContent>

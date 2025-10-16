@@ -9,7 +9,13 @@ import { DictPagination } from './components/DictPagination';
 import type { DictTypeParams, DictType } from './types/dict';
 
 export default function DictPage() {
-  const [searchParams, setSearchParams] = useState<DictTypeParams>({});
+  const [searchParams, setSearchParams] = useState<DictTypeParams>({
+    dictName: '',
+    dictType: '',
+    status: 'all',
+    serviceName: '',
+    dataType: '0',
+  });
 
   // 使用分页查询 hook
   const { data, total, current, size, loading, error, refetch } = usePaginatedApi<DictType>(
@@ -18,7 +24,7 @@ export default function DictPage() {
         params: {
           dictName: searchParams.dictName || '',
           dictType: searchParams.dictType || '',
-          status: searchParams.status || '',
+          status: searchParams.status === 'all' ? '' : searchParams.status,
           serviceName: searchParams.serviceName || '',
           dataType: searchParams.dataType || '0',
         },
