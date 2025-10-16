@@ -22,10 +22,8 @@ src/lib/
 │   ├── config.ts             # axios 基础配置
 │   ├── types.ts              # API 响应类型定义
 │   ├── interceptors.ts       # 请求/响应拦截器
-│   ├── base.ts               # 基础 CRUD API 类
 │   ├── hooks/
-│   │   ├── useQuery.ts       # 通用查询 Hook
-│   │   └── useCrud.ts        # CRUD 操作 Hook
+│   │   └── useApi.ts         # 通用 API Hook
 │   └── modules/
 │       ├── dict.ts           # 字典管理 API
 │       ├── user.ts           # 用户管理 API
@@ -71,8 +69,15 @@ interface RequestParams extends PaginationParams {
   [key: string]: any;
 }
 
-// 查询结果状态
-interface QueryResult<T> {
+// API 请求状态
+interface ApiState<T> {
+  data: T | null; // 响应数据
+  loading: boolean; // 加载状态
+  error: string | null; // 错误信息
+}
+
+// 分页查询状态
+interface PaginatedState<T> {
   data: T[]; // 数据列表
   total: number; // 总数
   current: number; // 当前页码
@@ -147,71 +152,83 @@ api.interceptors.response.use(
 );
 ```
 
-## 🔧 基础 API 类
-
-### RESTful 规范的 CRUD 封装
-
-```typescript
-// lib/api/base.ts
-import { api } from './config';
-import type { ApiResponse, PaginatedResponse, RequestParams } from './types';
-
-// RESTful 规范的基础 CRUD API 类
-export class BaseApi<T = any, CreateParams = Partial<T>> {
-  protected endpoint: string;
-
-  constructor(endpoint: string) {
-    this.endpoint = endpoint;
-  }
-
-  // GET /{endpoint} - 获取列表（分页）
-  getList(params?: RequestParams): Promise<PaginatedResponse<T>> {
-    return api.get(`/${this.endpoint}`, { params });
-  }
-
-  // GET /{endpoint}/{id} - 获取详情
-  getDetail(id: string): Promise<ApiResponse<T>> {
-    return api.get(`/${this.endpoint}/${id}`);
-  }
-
-  // POST /{endpoint} - 创建资源
-  create(data: CreateParams): Promise<ApiResponse<T>> {
-    return api.post(`/${this.endpoint}`, data);
-  }
-
-  // PUT /{endpoint}/{id} - 更新资源
-  update(id: string, data: Partial<T>): Promise<ApiResponse<T>> {
-    return api.put(`/${this.endpoint}/${id}`, data);
-  }
-
-  // DELETE /{endpoint}/{id} - 删除资源
-  delete(id: string): Promise<ApiResponse<boolean>> {
-    return api.delete(`/${this.endpoint}/${id}`);
-  }
-
-  // PATCH /{endpoint}/{id}/status - 更新状态
-  updateStatus(id: string, status: string | number): Promise<ApiResponse<boolean>> {
-    return api.patch(`/${this.endpoint}/${id}/status`, { status });
-  }
-}
-```
-
 ## 🪝 自定义 Hooks
 
-### 通用查询 Hook
+### 通用 API Hook
 
 ```typescript
-// lib/api/hooks/useQuery.ts
+// lib/api/hooks/useApi.ts
 import { useState, useCallback } from 'react';
-import type { QueryResult, PaginationParams } from '@/lib/api/types';
+import type { ApiState, PaginatedState } from '../types';
 
-export function useQuery<T>(
-  queryFn: (
-    params: PaginationParams
+// 单个 API 请求 Hook
+export function useApi<T>(
+  apiFunction: () => Promise<{ data: T }>,
+  options?: {
+    immediate?: boolean; // 是否立即执行
+    onSuccess?: (data: T) => void;
+    onError?: (error: Error) => void;
+  }
+): ApiState<T> & {
+  execute: () => Promise<void>;
+  reset: () => void;
+} {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const execute = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await apiFunction();
+      setData(response.data);
+      options?.onSuccess?.(response.data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '请求失败';
+      setError(errorMessage);
+      options?.onError?.(err instanceof Error ? err : new Error(errorMessage));
+    } finally {
+      setLoading(false);
+    }
+  }, [apiFunction, options]);
+
+  const reset = useCallback(() => {
+    setData(null);
+    setError(null);
+    setLoading(false);
+  }, []);
+
+  // 立即执行
+  useState(() => {
+    if (options?.immediate) {
+      execute();
+    }
+  });
+
+  return {
+    data,
+    loading,
+    error,
+    execute,
+    reset,
+  };
+}
+
+// 分页查询 Hook
+export function usePaginatedApi<T>(
+  apiFunction: (
+    params: any
   ) => Promise<{ data: { records: T[]; total: number; current: number; size: number } }>,
-  initialParams: PaginationParams = {}
-): QueryResult<T> & {
-  refetch: (params?: PaginationParams) => Promise<void>;
+  initialParams: any = {},
+  options?: {
+    immediate?: boolean;
+    onSuccess?: (data: T[], total: number) => void;
+    onError?: (error: Error) => void;
+  }
+): PaginatedState<T> & {
+  refetch: (params?: any) => Promise<void>;
   setLoading: (loading: boolean) => void;
 } {
   const [data, setData] = useState<T[]>([]);
@@ -222,24 +239,34 @@ export function useQuery<T>(
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(
-    async (params: PaginationParams = {}) => {
+    async (params: any = {}) => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await queryFn({ current, size, ...params });
+        const response = await apiFunction({ current, size, ...params });
         setData(response.data.records);
         setTotal(response.data.total);
         setCurrent(response.data.current);
         setSize(response.data.size);
+        options?.onSuccess?.(response.data.records, response.data.total);
       } catch (err) {
-        setError(err.message || '查询失败');
+        const errorMessage = err instanceof Error ? err.message : '查询失败';
+        setError(errorMessage);
+        options?.onError?.(err instanceof Error ? err : new Error(errorMessage));
       } finally {
         setLoading(false);
       }
     },
-    [queryFn, current, size]
+    [apiFunction, current, size, options]
   );
+
+  // 立即执行
+  useState(() => {
+    if (options?.immediate) {
+      refetch(initialParams);
+    }
+  });
 
   return {
     data,
@@ -249,82 +276,7 @@ export function useQuery<T>(
     loading,
     error,
     refetch,
-    setLoading: (loading: boolean) => setLoading(loading),
-  };
-}
-```
-
-### CRUD 操作 Hook
-
-```typescript
-// lib/api/hooks/useCrud.ts
-import { useState, useCallback } from 'react';
-
-export function useCrud<T>(apiMethods: {
-  create: (data: Partial<T>) => Promise<any>;
-  update: (id: string, data: Partial<T>) => Promise<any>;
-  delete: (id: string) => Promise<any>;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const create = useCallback(
-    async (data: Partial<T>) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await apiMethods.create(data);
-        return response.data;
-      } catch (err) {
-        setError(err.message || '创建失败');
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [apiMethods]
-  );
-
-  const update = useCallback(
-    async (id: string, data: Partial<T>) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await apiMethods.update(id, data);
-        return response.data;
-      } catch (err) {
-        setError(err.message || '更新失败');
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [apiMethods]
-  );
-
-  const remove = useCallback(
-    async (id: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await apiMethods.delete(id);
-        return response.data;
-      } catch (err) {
-        setError(err.message || '删除失败');
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [apiMethods]
-  );
-
-  return {
-    loading,
-    error,
-    create,
-    update,
-    delete: remove,
+    setLoading: (loadingValue: boolean) => setLoading(loadingValue),
   };
 }
 ```
@@ -335,7 +287,7 @@ export function useCrud<T>(apiMethods: {
 
 ```typescript
 // lib/api/modules/dict.ts
-import { BaseApi } from '../base';
+import { api } from '../config';
 import type { ApiResponse, PaginatedResponse, RequestParams } from '../types';
 
 // 字典实体类型
@@ -353,25 +305,33 @@ export interface Dict {
   dataType: number;
 }
 
-// 字典 API 类
-export class DictApi extends BaseApi<Dict> {
-  constructor() {
-    super('dict'); // 对应 /dict 路径
-  }
+// 字典 API 函数集合
+export const dictApi = {
+  // 获取字典列表（分页）
+  getList: (params?: RequestParams): Promise<PaginatedResponse<Dict>> =>
+    api.get('/dict', { params }),
+
+  // 获取字典详情
+  getDetail: (dictId: string): Promise<ApiResponse<Dict>> => api.get(`/dict/${dictId}`),
+
+  // 创建字典
+  create: (data: Omit<Dict, 'dictId' | 'createTime' | 'updateTime'>): Promise<ApiResponse<Dict>> =>
+    api.post('/dict', data),
+
+  // 更新字典
+  update: (dictId: string, data: Partial<Dict>): Promise<ApiResponse<Dict>> =>
+    api.put(`/dict/${dictId}`, data),
+
+  // 删除字典
+  delete: (dictId: string): Promise<ApiResponse<boolean>> => api.delete(`/dict/${dictId}`),
 
   // 按类型获取字典
-  getByType(dictType: string): Promise<ApiResponse<Dict[]>> {
-    return api.get(`/dict/type/${dictType}`);
-  }
+  getByType: (dictType: string): Promise<ApiResponse<Dict[]>> => api.get(`/dict/type/${dictType}`),
 
   // 批量更新状态
-  batchUpdateStatus(dictIds: string[], status: string): Promise<ApiResponse<boolean>> {
-    return api.patch(`/dict/batch/status`, { dictIds, status });
-  }
-}
-
-// 创建单例实例
-export const dictApi = new DictApi();
+  batchUpdateStatus: (dictIds: string[], status: string): Promise<ApiResponse<boolean>> =>
+    api.patch('/dict/batch/status', { dictIds, status }),
+};
 ```
 
 ### 模块统一导出
@@ -396,12 +356,12 @@ export const apiModules = {
 
 ```typescript
 // components/DictList.tsx
-import { useQuery, useCrud } from '@/lib/api/hooks';
-import { apiModules } from '@/lib/api';
+import { usePaginatedApi, useApi } from '@/lib/api/hooks';
+import { dictApi } from '@/lib/api';
 import type { Dict } from '@/lib/api';
 
 export const DictList = () => {
-  // 自动管理列表查询状态
+  // 自动管理分页查询状态
   const {
     data,
     total,
@@ -410,18 +370,33 @@ export const DictList = () => {
     loading,
     error,
     refetch,
-  } = useQuery<Dict>(
-    (params) => apiModules.dict.getList(params),
-    { current: 1, size: 10 }
+  } = usePaginatedApi<Dict>(
+    (params) => dictApi.getList(params),
+    { current: 1, size: 10 },
+    { immediate: true }
   );
 
-  // 自动管理 CRUD 操作状态
-  const { loading: crudLoading, create, update, delete: remove } = useCrud<Dict>(apiModules.dict);
+  // 创建字典
+  const { execute: createDict, loading: createLoading } = useApi(
+    () => dictApi.create(formData),
+    { onSuccess: () => refetch() }
+  );
+
+  // 更新字典
+  const { execute: updateDict, loading: updateLoading } = useApi(
+    (id: string, data: Partial<Dict>) => dictApi.update(id, data),
+    { onSuccess: () => refetch() }
+  );
+
+  // 删除字典
+  const { execute: deleteDict, loading: deleteLoading } = useApi(
+    (id: string) => dictApi.delete(id),
+    { onSuccess: () => refetch() }
+  );
 
   const handleCreate = async (formData: Partial<Dict>) => {
     try {
-      await create(formData);
-      await refetch(); // 创建成功后刷新列表
+      await createDict();
     } catch (error) {
       // 错误信息已在 Hook 中处理
     }
@@ -429,8 +404,7 @@ export const DictList = () => {
 
   const handleDelete = async (dictId: string) => {
     try {
-      await remove(dictId);
-      await refetch(); // 删除成功后刷新列表
+      await deleteDict();
     } catch (error) {
       // 错误信息已在 Hook 中处理
     }
@@ -451,8 +425,7 @@ export const DictList = () => {
           data={data}
           onDelete={handleDelete}
           onUpdate={async (id, data) => {
-            await update(id, data);
-            await refetch();
+            await updateDict(id, data);
           }}
         />
       )}
@@ -474,7 +447,7 @@ export const DictList = () => {
 ```typescript
 // store/dictStore.ts
 import { create } from 'zustand';
-import { apiModules } from '@/lib/api';
+import { dictApi } from '@/lib/api';
 import type { Dict } from '@/lib/api';
 
 interface DictState {
@@ -495,7 +468,7 @@ export const useDictStore = create<DictState>((set, get) => ({
 
   fetchDictList: async (params = {}) => {
     try {
-      const response = await apiModules.dict.getList(params);
+      const response = await dictApi.getList(params);
       const dictList = response.data.records;
       set({ dictList });
 
@@ -515,7 +488,7 @@ export const useDictStore = create<DictState>((set, get) => ({
 
   fetchDictByType: async (type: string) => {
     try {
-      const response = await apiModules.dict.getByType(type);
+      const response = await dictApi.getByType(type);
       return response.data;
     } catch (error) {
       throw error;
@@ -523,21 +496,21 @@ export const useDictStore = create<DictState>((set, get) => ({
   },
 
   createDict: async (data: Partial<Dict>) => {
-    const response = await apiModules.dict.create(data);
+    const response = await dictApi.create(data);
     if (response.data) {
       await get().fetchDictList(); // 刷新列表
     }
   },
 
   updateDict: async (id: string, data: Partial<Dict>) => {
-    const response = await apiModules.dict.update(id, data);
+    const response = await dictApi.update(id, data);
     if (response.data) {
       await get().fetchDictList(); // 刷新列表
     }
   },
 
   deleteDict: async (id: string) => {
-    const response = await apiModules.dict.delete(id);
+    const response = await dictApi.delete(id);
     if (response.data) {
       await get().fetchDictList(); // 刷新列表
     }
