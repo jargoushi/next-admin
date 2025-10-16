@@ -1,5 +1,5 @@
 import { api } from '../config';
-import type { ApiResponse, PaginatedResponse, RequestParams } from '../types';
+import type { ApiResponse, PaginatedResponse, RequestParams } from '@/types/api';
 import type { DictType, DictTypePageRequest, DictTypePageResponse } from '@/types/dict';
 
 // 字典 API 函数集合

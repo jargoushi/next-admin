@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { RequestParams } from '@/lib/api/types';
+import type { RequestParams } from '@/types/api';
 
 // API 请求状态
 export interface ApiState<T> {
