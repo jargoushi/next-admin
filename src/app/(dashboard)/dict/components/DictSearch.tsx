@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, RotateCcw } from 'lucide-react';
-import type { DictTypeParams } from '../types/dict';
+import type { DictTypeParams } from '@/types/dict';
 
 interface DictSearchProps {
   onSearch: (params: DictTypeParams) => void;

@@ -1,12 +1,6 @@
 import { api } from '../config';
-import type {
-  ApiResponse,
-  PaginatedResponse,
-  RequestParams,
-  DictType,
-  DictTypePageRequest,
-  DictTypePageResponse,
-} from '../types';
+import type { ApiResponse, PaginatedResponse, RequestParams } from '../types';
+import type { DictType, DictTypePageRequest, DictTypePageResponse } from '@/types/dict';
 
 // 字典 API 函数集合
 export const dictApi = {
