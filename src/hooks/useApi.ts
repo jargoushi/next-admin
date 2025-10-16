@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { RequestParams } from '@/lib/api/types';
 
 // API 请求状态
@@ -101,12 +101,13 @@ export function usePaginatedApi<T>(
       setError(null);
 
       try {
-        const response = await apiFunction({ current, size, ...params });
-        setData(response.data.records);
-        setTotal(response.data.total);
-        setCurrent(response.data.current);
-        setSize(response.data.size);
-        options?.onSuccess?.(response.data.records, response.data.total);
+        // 使用闭包捕获最新的状态值
+        const currentResponse = await apiFunction({ ...params });
+        setData(currentResponse.data.records);
+        setTotal(currentResponse.data.total);
+        setCurrent(currentResponse.data.current);
+        setSize(currentResponse.data.size);
+        options?.onSuccess?.(currentResponse.data.records, currentResponse.data.total);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : '查询失败';
         setError(errorMessage);
@@ -115,7 +116,7 @@ export function usePaginatedApi<T>(
         setLoading(false);
       }
     },
-    [apiFunction, current, size, options]
+    [apiFunction, options]
   );
 
   // 立即执行
