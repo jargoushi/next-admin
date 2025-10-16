@@ -34,12 +34,14 @@ export default function DictPage() {
       const response = await dictApi.getPageList(request);
 
       // 转换数据格式以匹配 hook 的期望
+      // 注意：API响应结构为 response.data.data.records
+      const responseData = response.data.data;
       return {
         data: {
-          records: response.data.records,
-          total: Number(response.data.total),
-          current: Number(response.data.current),
-          size: Number(response.data.size),
+          records: responseData.records || [],
+          total: Number(responseData.total || 0),
+          current: Number(responseData.current || 1),
+          size: Number(responseData.size || 10),
         },
       };
     },
