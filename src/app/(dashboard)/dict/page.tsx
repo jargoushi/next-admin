@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { usePaginatedApi } from '@/hooks/useApi';
 import { dictApi } from '@/lib/api';
 import { DictSearch } from './components/DictSearch';
@@ -17,9 +17,9 @@ export default function DictPage() {
     dataType: '0',
   });
 
-  // 使用 useMemo 缓存 API 函数，避免不必要的重新创建
-  const apiFunction = useMemo(
-    () => async (params: { current?: number; size?: number }) => {
+  // 使用 useCallback 缓存 API 函数，避免不必要的重新创建
+  const apiFunction = useCallback(
+    async (params: { current?: number; size?: number }) => {
       const request = {
         params: {
           dictName: searchParams.dictName || '',

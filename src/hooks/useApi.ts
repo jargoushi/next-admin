@@ -94,6 +94,11 @@ export function usePaginatedApi<T>(
   const [size, setSize] = useState(initialParams.size || 10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const refetchRef = useRef<(params: RequestParams) => Promise<void>>(() => Promise.resolve());
+  const apiFunctionRef = useRef(apiFunction);
+
+  // 更新 ref 值
+  apiFunctionRef.current = apiFunction;
 
   const refetch = useCallback(
     async (params: RequestParams = {}) => {
@@ -102,7 +107,7 @@ export function usePaginatedApi<T>(
 
       try {
         // 使用闭包捕获最新的状态值
-        const currentResponse = await apiFunction({ ...params });
+        const currentResponse = await apiFunctionRef.current({ ...params });
         setData(currentResponse.data.records);
         setTotal(currentResponse.data.total);
         setCurrent(currentResponse.data.current);
@@ -116,15 +121,24 @@ export function usePaginatedApi<T>(
         setLoading(false);
       }
     },
-    [apiFunction, options]
+    [options]
   );
 
-  // 立即执行
+  refetchRef.current = refetch;
+
+  // 立即执行 - 使用 ref 避免依赖循环
+  const optionsRef = useRef(options);
+  const initialParamsRef = useRef(initialParams);
+
+  // 更新 ref 值
+  optionsRef.current = options;
+  initialParamsRef.current = initialParams;
+
   useEffect(() => {
-    if (options?.immediate) {
-      refetch(initialParams);
+    if (optionsRef.current?.immediate) {
+      refetchRef.current?.(initialParamsRef.current);
     }
-  }, [refetch, initialParams, options?.immediate]);
+  }, []); // 空依赖数组，只执行一次
 
   return {
     data,
