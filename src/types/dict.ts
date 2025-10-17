@@ -10,7 +10,7 @@ export interface DictTypeParams {
 }
 
 // 字典类型实体
-export interface DictType {
+export interface DictType extends Record<string, unknown> {
   dictId: string;
   serviceName: string;
   dictName: string;
