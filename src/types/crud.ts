@@ -119,19 +119,13 @@ export interface CrudConfig<T = Record<string, unknown>, CreateParams = Partial<
     defaultPageSize?: number;
   };
 
-  // 权限配置
-  permissions?: {
-    create?: boolean;
-    edit?: boolean;
-    delete?: boolean;
-    export?: boolean;
-    import?: boolean;
-  };
-
-  // 其他配置
+  // 功能配置
   features?: {
+    enableCreate?: boolean;
+    enableEdit?: boolean;
+    enableDelete?: boolean;
+    enableView?: boolean;
     enableSearch?: boolean;
-    enableRefresh?: boolean;
     enableExport?: boolean;
     enableImport?: boolean;
     enableBatchDelete?: boolean;
@@ -156,7 +150,7 @@ export interface CrudState<T = Record<string, unknown>> {
   // 编辑状态
   editDialogOpen: boolean;
   editingRecord: T | null;
-  editMode: 'create' | 'edit';
+  editMode: 'create' | 'edit' | 'view';
   editLoading: boolean;
 
   // 选择状态
@@ -168,7 +162,6 @@ export interface CrudState<T = Record<string, unknown>> {
 export interface CrudActions<T = Record<string, unknown>, CreateParams = Partial<T>> {
   // 数据操作
   fetchData: (params?: RequestParams) => Promise<void>;
-  refresh: () => Promise<void>;
 
   // 搜索操作
   handleSearch: (params: Record<string, unknown>) => void;
@@ -180,6 +173,7 @@ export interface CrudActions<T = Record<string, unknown>, CreateParams = Partial
   // 编辑操作
   handleCreate: () => void;
   handleEdit: (record: T) => void;
+  handleView: (record: T) => void;
   handleDelete: (record: T) => Promise<void>;
   handleBatchDelete: (records: T[]) => Promise<void>;
   handleSubmit: (data: CreateParams | Partial<T>) => Promise<void>;
@@ -194,4 +188,5 @@ export interface CrudActions<T = Record<string, unknown>, CreateParams = Partial
 export interface UseCrudReturn<T = Record<string, unknown>, CreateParams = Partial<T>> {
   state: CrudState<T>;
   actions: CrudActions<T, CreateParams>;
+  ConfirmDialog: () => React.ReactNode;
 }

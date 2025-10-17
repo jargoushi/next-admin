@@ -10,15 +10,9 @@ import {
 } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
+import { Eye, Edit, Trash2 } from 'lucide-react';
+import { Empty } from '@/components/common';
 import type { TableColumn } from '@/types/crud';
 
 interface GenericTableProps<T = Record<string, unknown>> {
@@ -33,11 +27,10 @@ interface GenericTableProps<T = Record<string, unknown>> {
   onEdit?: (record: T) => void;
   onDelete?: (record: T) => void;
   onView?: (record: T) => void;
-  permissions?: {
-    edit?: boolean;
-    delete?: boolean;
-    view?: boolean;
-  };
+  // 简化的功能配置，替代复杂的权限控制
+  enableEdit?: boolean;
+  enableDelete?: boolean;
+  enableView?: boolean;
   actions?: {
     label?: string;
     icon?: React.ReactNode;
@@ -64,11 +57,9 @@ export function GenericTable<T extends Record<string, unknown>>({
   onEdit,
   onDelete,
   onView,
-  permissions = {
-    edit: true,
-    delete: true,
-    view: false,
-  },
+  enableEdit = true,
+  enableDelete = true,
+  enableView = false,
   actions = [],
   className = '',
 }: GenericTableProps<T>) {
@@ -124,7 +115,7 @@ export function GenericTable<T extends Record<string, unknown>>({
   // 渲染操作列
   const renderActions = (record: T) => {
     const hasCustomActions = actions.length > 0;
-    const hasDefaultActions = permissions.edit || permissions.delete || permissions.view;
+    const hasDefaultActions = enableEdit || enableDelete || enableView;
 
     if (!hasCustomActions && !hasDefaultActions) {
       return null;
@@ -132,7 +123,7 @@ export function GenericTable<T extends Record<string, unknown>>({
 
     return (
       <div className="flex items-center gap-1">
-        {permissions.view && onView && (
+        {enableView && onView && (
           <Button
             variant="ghost"
             size="sm"
@@ -142,7 +133,7 @@ export function GenericTable<T extends Record<string, unknown>>({
             <Eye className="h-3 w-3" />
           </Button>
         )}
-        {permissions.edit && onEdit && (
+        {enableEdit && onEdit && (
           <Button
             variant="ghost"
             size="sm"
@@ -152,7 +143,7 @@ export function GenericTable<T extends Record<string, unknown>>({
             <Edit className="h-3 w-3" />
           </Button>
         )}
-        {permissions.delete && onDelete && (
+        {enableDelete && onDelete && (
           <Button
             variant="ghost"
             size="sm"
@@ -175,11 +166,7 @@ export function GenericTable<T extends Record<string, unknown>>({
   }
 
   if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-sm text-muted-foreground">暂无数据</div>
-      </div>
-    );
+    return <Empty className="h-64" description="没有找到符合条件的记录" />;
   }
 
   return (
@@ -219,7 +206,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                 {column.title}
               </TableHead>
             ))}
-            {(permissions.edit || permissions.delete || permissions.view || actions.length > 0) && (
+            {(enableEdit || enableDelete || enableView || actions.length > 0) && (
               <TableHead className="w-32 text-center bg-gray-100 text-gray-700 font-medium sticky right-0 bg-gray-100">
                 操作
               </TableHead>
@@ -267,10 +254,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                     {renderCell(column, record, index)}
                   </TableCell>
                 ))}
-                {(permissions.edit ||
-                  permissions.delete ||
-                  permissions.view ||
-                  actions.length > 0) && (
+                {(enableEdit || enableDelete || enableView || actions.length > 0) && (
                   <TableCell className="w-32 text-center sticky right-0 bg-white">
                     {renderActions(record)}
                   </TableCell>

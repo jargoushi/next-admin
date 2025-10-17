@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import type { CrudConfig, CrudState, CrudActions, UseCrudReturn } from '@/types/crud';
+import type { CrudConfig, CrudState, CrudActions } from '@/types/crud';
 import type { RequestParams } from '@/types/api';
+import { useConfirm } from './useConfirm';
 
 /**
  * 通用CRUD Hook
@@ -9,7 +10,8 @@ import type { RequestParams } from '@/types/api';
  */
 export function useCrud<T extends Record<string, unknown>, CreateParams = Partial<T>>(
   config: CrudConfig<T, CreateParams>
-): UseCrudReturn<T, CreateParams> {
+) {
+  const { confirm, ConfirmDialog } = useConfirm();
   // 初始化状态
   const [state, setState] = useState<CrudState<T>>({
     // 数据状态
@@ -159,6 +161,16 @@ export function useCrud<T extends Record<string, unknown>, CreateParams = Partia
     }));
   }, []);
 
+  // 查看处理
+  const handleView = useCallback((record: T) => {
+    setState((prev) => ({
+      ...prev,
+      editDialogOpen: true,
+      editingRecord: record,
+      editMode: 'view', // 使用查看模式
+    }));
+  }, []);
+
   // 删除处理
   const handleDelete = useCallback(
     async (record: T) => {
@@ -171,7 +183,15 @@ export function useCrud<T extends Record<string, unknown>, CreateParams = Partia
       const id = record[idKey] as string | number;
       const name = record.name || record.title || record.dictName || `ID为${id}的记录`;
 
-      if (!confirm(`确定要删除"${name}"吗？此操作不可撤销。`)) {
+      const confirmed = await confirm({
+        title: '删除确认',
+        description: `确定要删除"${name}"吗？此操作不可撤销。`,
+        confirmText: '删除',
+        cancelText: '取消',
+        variant: 'destructive',
+      });
+
+      if (!confirmed) {
         return;
       }
 
@@ -184,7 +204,7 @@ export function useCrud<T extends Record<string, unknown>, CreateParams = Partia
         toast.error(errorMessage);
       }
     },
-    [refresh]
+    [refresh, confirm]
   );
 
   // 批量删除处理
@@ -200,7 +220,15 @@ export function useCrud<T extends Record<string, unknown>, CreateParams = Partia
         return;
       }
 
-      if (!confirm(`确定要删除选中的${records.length}条记录吗？此操作不可撤销。`)) {
+      const confirmed = await confirm({
+        title: '批量删除确认',
+        description: `确定要删除选中的${records.length}条记录吗？此操作不可撤销。`,
+        confirmText: '删除',
+        cancelText: '取消',
+        variant: 'destructive',
+      });
+
+      if (!confirmed) {
         return;
       }
 
@@ -227,7 +255,7 @@ export function useCrud<T extends Record<string, unknown>, CreateParams = Partia
         toast.error(errorMessage);
       }
     },
-    [refresh]
+    [refresh, confirm]
   );
 
   // 提交处理
@@ -309,12 +337,12 @@ export function useCrud<T extends Record<string, unknown>, CreateParams = Partia
   // 构建actions对象
   const actions: CrudActions<T, CreateParams> = {
     fetchData,
-    refresh,
     handleSearch,
     handleReset,
     handlePageChange,
     handleCreate,
     handleEdit,
+    handleView,
     handleDelete,
     handleBatchDelete,
     handleSubmit,
@@ -326,5 +354,6 @@ export function useCrud<T extends Record<string, unknown>, CreateParams = Partia
   return {
     state,
     actions,
+    ConfirmDialog,
   };
 }

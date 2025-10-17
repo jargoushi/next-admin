@@ -265,21 +265,15 @@ export const dictCrudConfig: CrudConfig<DictType> = {
     defaultPageSize: 10,
   },
 
-  // 权限配置
-  permissions: {
-    create: true,
-    edit: true,
-    delete: true,
-    export: false,
-    import: false,
-  },
-
   // 功能配置
   features: {
+    enableCreate: true,
+    enableEdit: true,
+    enableDelete: true,
+    enableView: true,
     enableSearch: true,
-    enableRefresh: true,
-    enableExport: false,
-    enableImport: false,
+    enableExport: true,
+    enableImport: true,
     enableBatchDelete: true,
   },
 };

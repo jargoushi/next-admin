@@ -44,7 +44,7 @@ interface GenericEditDialogProps<T extends Record<string, unknown>> {
   record: T | null;
   fields: EditField<T>[];
   onSubmit: (data: Partial<T>) => Promise<void>;
-  mode?: 'create' | 'edit';
+  mode?: 'create' | 'edit' | 'view';
   title?: string;
   description?: string;
   width?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -212,6 +212,7 @@ export function GenericEditDialog<T extends Record<string, unknown>>({
     }
 
     const formFieldName = field.name as string;
+    const isDisabled = field.disabled || isSubmitting || mode === 'view';
 
     switch (field.type) {
       case 'input':
@@ -226,7 +227,7 @@ export function GenericEditDialog<T extends Record<string, unknown>>({
                 <FormControl>
                   <Input
                     placeholder={field.placeholder || `请输入${field.label}`}
-                    disabled={field.disabled || isSubmitting}
+                    disabled={isDisabled}
                     value={(formField.value as string) || ''}
                     onChange={formField.onChange}
                     onBlur={formField.onBlur}
@@ -257,7 +258,7 @@ export function GenericEditDialog<T extends Record<string, unknown>>({
                 <FormControl>
                   <Textarea
                     placeholder={field.placeholder || `请输入${field.label}`}
-                    disabled={field.disabled || isSubmitting}
+                    disabled={isDisabled}
                     rows={4}
                     value={(formField.value as string) || ''}
                     onChange={formField.onChange}
@@ -289,7 +290,7 @@ export function GenericEditDialog<T extends Record<string, unknown>>({
                 <Select
                   onValueChange={formField.onChange}
                   value={(formField.value as string) || ''}
-                  disabled={field.disabled || isSubmitting}
+                  disabled={isDisabled}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -328,7 +329,7 @@ export function GenericEditDialog<T extends Record<string, unknown>>({
                   <Input
                     type="number"
                     placeholder={field.placeholder || `请输入${field.label}`}
-                    disabled={field.disabled || isSubmitting}
+                    disabled={isDisabled}
                     value={(formField.value as number) || ''}
                     onChange={(e) => {
                       const value = e.target.value ? Number(e.target.value) : undefined;
@@ -375,7 +376,7 @@ export function GenericEditDialog<T extends Record<string, unknown>>({
                   <Switch
                     checked={(formField.value as boolean) || false}
                     onCheckedChange={formField.onChange}
-                    disabled={field.disabled || isSubmitting}
+                    disabled={isDisabled}
                   />
                 </FormControl>
                 <FormMessage />
@@ -397,7 +398,7 @@ export function GenericEditDialog<T extends Record<string, unknown>>({
                   <RadioGroup
                     onValueChange={formField.onChange}
                     value={(formField.value as string) || ''}
-                    disabled={field.disabled || isSubmitting}
+                    disabled={isDisabled}
                     className="flex flex-col space-y-1"
                   >
                     {field.options?.map((option) => (
@@ -453,7 +454,9 @@ export function GenericEditDialog<T extends Record<string, unknown>>({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(getWidthClass(), className)}>
         <DialogHeader>
-          <DialogTitle>{title || (mode === 'create' ? '新建' : '编辑')}</DialogTitle>
+          <DialogTitle>
+            {title || (mode === 'create' ? '新建' : mode === 'edit' ? '编辑' : '查看')}
+          </DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
@@ -472,12 +475,14 @@ export function GenericEditDialog<T extends Record<string, unknown>>({
                 onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
-                取消
+                {mode === 'view' ? '关闭' : '取消'}
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === 'create' ? '创建' : '保存'}
-              </Button>
+              {mode !== 'view' && (
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {mode === 'create' ? '创建' : '保存'}
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </Form>
